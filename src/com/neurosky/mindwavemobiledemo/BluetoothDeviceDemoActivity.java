@@ -64,6 +64,8 @@ public class BluetoothDeviceDemoActivity extends Activity {
 	private BluetoothDevice mBluetoothDevice;
 	private String address = null;
 
+	private File logfile;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -73,6 +75,28 @@ public class BluetoothDeviceDemoActivity extends Activity {
 
 		initView();
 		setUpDrawWaveView();
+
+		// init data logger
+		Calendar c = Calendar.getInstance();
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd-HHmm");
+
+		String dateTime = df.format(c.getTime());
+
+		File logfolder = new File(Environment.getExternalStorageDirectory() + "/sbh/");
+		if(!logfolder.exists()) {
+			logfolder.mkdirs();
+		}
+
+		logfile = new File(logfolder, "log_"+dateTime+"_.csv");
+		if(!logfile.exists()){
+			try {
+				logfile.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+				Log.i(TAG, "error:" + e.getMessage());
+				return;
+			}
+		}
 
 		try {
 			// TODO	
@@ -379,6 +403,28 @@ public class BluetoothDeviceDemoActivity extends Activity {
 					tv_highbeta.setText("" +power.highBeta);
 					tv_lowgamma.setText("" +power.lowGamma);
 					tv_middlegamma.setText("" +power.middleGamma);
+
+					// Dump data to CSV^M
+					try {
+						String data = "t,"+System.currentTimeMillis()+",";
+						data += "lA," + power.lowAlpha + ",";
+						data += "hA," + power.highAlpha + ",";
+						data += "lB," + power.lowBeta + ",";
+						data += "hB," + power.highBeta + ",";
+						data += "lG," + power.lowGamma + ",";
+						data += "mG," + power.middleGamma + ",";
+						data += "d," + power.delta + ",";
+						data += "lG," + power.theta;
+
+						FileOutputStream fOut = new FileOutputStream(logfile, true);
+						OutputStreamWriter myOutWriter = new OutputStreamWriter(fOut);
+						myOutWriter.append(data+"\n");
+						myOutWriter.close();
+						fOut.flush();
+						fOut.close();
+					} catch (Exception e) {
+						Toast.makeText(BluetoothDeviceDemoActivity.this,e.getMessage(), Toast.LENGTH_SHORT).show();
+					}
 				}
 				break;
 			case MindDataType.CODE_POOR_SIGNAL://
